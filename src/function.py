@@ -3,28 +3,45 @@ import os
 
 MOVIES_JSON_PATH = os.path.join('src', 'knowledge_base', 'movies.json')
 
+# Cargo la base de conocimiento
 def load_knowledge_base():
     with open(MOVIES_JSON_PATH, 'r', encoding='utf-8') as file:
         return json.load(file)
     
-def search_movies_by_iterable_parameter(value, movies, key):
+# Reglas de inferencia
+def filtered_movies_by_genre(genre, movies):
     filtered_movies = []
     for movie in movies:
-        if key in movie['props'] and any(value == g for g in movie['props'][key]):
+        if any(g in movie['props']['genre'] for g in genre):
             filtered_movies.append(movie)
     return filtered_movies
 
-def search_movies_by_range_parameter(value, movies, key):
+def filtered_movies_by_mood(mood, movies):
     filtered_movies = []
     for movie in movies:
-        if key in movie['props']:
-            movie_value = movie['props'][key]
-            if key == 'year' and abs(movie_value - value) <= 5:
-                filtered_movies.append(movie)
-            elif key == 'duration' and abs(movie_value - value) <= 30:
-                filtered_movies.append(movie)
+        if any(m in movie['props']['mood'] for m in mood):
+            filtered_movies.append(movie)
     return filtered_movies
-    
+
+def filtered_movies_by_year(year, movies):
+    filtered_movies = []
+    for movie in movies:
+        if any(movie['props']['year'] >= y & movie['props']['year'] < (y + 10) for y in year):
+            filtered_movies.append(movie)
+    return filtered_movies
+
+def filtered_movies_by_duration(duration, movies):
+    filtered_movies = []
+    for movie in movies:
+        for d in duration:
+            if d > 150 & movie['props']['duration'] > d:
+                filtered_movies.append(movie)
+            else:
+                if (d - 30) <= movie['props']['duration'] & movie['props']['duration'] <= (d + 30):
+                    filtered_movies.append(movie) 
+    return filtered_movies
+
+# Motor de inferencia
 def inference_engine(params):
     movies = load_knowledge_base()
     filtered_movies = []
@@ -32,19 +49,19 @@ def inference_engine(params):
     mood = params.get('mood')
     year = params.get('year')
     duration = params.get('duration')    
+
+    # Comparando los generos de las películas con lo que el usuario quiere
+    filtered_movies = filtered_movies_by_genre(genre, movies)
     
-    # Comparando género de la película
-    filtered_movies = search_movies_by_iterable_parameter(genre, movies, 'genre')
+    # Comparando los estados de ánimo de las películas con lo que el usuario quiere
+    filtered_movies = filtered_movies_by_mood(mood, filtered_movies)
     
-    # Comparando estado de ánimo
-    filtered_movies = search_movies_by_iterable_parameter(mood, filtered_movies, 'mood')
+    # Comparando los años de las películas con lo que el usuario quiere
+    filtered_movies = filtered_movies_by_year(year, filtered_movies)
     
-    # Comparando año de lanzamiento con un rango de 5 años más y menos
-    filtered_movies = search_movies_by_range_parameter(year, filtered_movies, 'year')
-    
-    # Comparando duración de la película con un rango de 30 minutos más y menos
-    filtered_movies = search_movies_by_range_parameter(duration, filtered_movies, 'duration')
-    
+    # Comparando las duraciones de las películas con lo que el usuario quiere
+    filtered_movies = filtered_movies_by_duration(duration, filtered_movies)
+        
     response = [movie['response'] for movie in filtered_movies]
     
     return response
