@@ -9,6 +9,13 @@ def load_knowledge_base():
         return json.load(file)
     
 # Reglas de inferencia
+def filtereed_movies_by_location(location, movies):
+    filtered_movies = []
+    for movie in movies:
+        if any(l in movie['props']['location'] for l in location):
+            filtered_movies.append(movie)
+    return filtered_movies
+
 def filtered_movies_by_genre(genre, movies):
     filtered_movies = []
     for movie in movies:
@@ -37,21 +44,32 @@ def filtered_movies_by_duration(duration, movies):
             if d > 150 & movie['props']['duration'] > d:
                 filtered_movies.append(movie)
             else:
-                if (d - 30) <= movie['props']['duration'] & movie['props']['duration'] <= (d + 30):
+                if (d - 30) < movie['props']['duration'] & movie['props']['duration'] <= (d + 30):
                     filtered_movies.append(movie) 
+    return filtered_movies
+
+def filtered_movuies_by_popularity(popularity, movies):
+    filtered_movies = []
+    for movie in movies:
+        if movie['props']['popularity'] >= popularity & movie['props']['popularity'] < (popularity + 10):
+            filtered_movies.append(movie)
     return filtered_movies
 
 # Motor de inferencia
 def inference_engine(params):
     movies = load_knowledge_base()
     filtered_movies = []
+    location = params.get('location')
     genre = params.get('genre')
     mood = params.get('mood')
     year = params.get('year')
-    duration = params.get('duration')    
+    duration = params.get('duration')
+    
+    # Comparando las locaciones de las películas con lo que el usuario quiere
+    filtered_movies = filtereed_movies_by_location(location, movies)    
 
     # Comparando los generos de las películas con lo que el usuario quiere
-    filtered_movies = filtered_movies_by_genre(genre, movies)
+    filtered_movies = filtered_movies_by_genre(genre, filtered_movies)
     
     # Comparando los estados de ánimo de las películas con lo que el usuario quiere
     filtered_movies = filtered_movies_by_mood(mood, filtered_movies)
